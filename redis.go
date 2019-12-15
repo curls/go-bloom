@@ -77,3 +77,31 @@ func (s *RedisStorage) Exists(bit uint) (ret bool, err error) {
 	}
 	return bitValue == 1, err
 }
+
+// Add add the bits, which are to be saved, to the queue.
+func (s *RedisStorage) Add(bits ...uint) {
+	s.queue = append(s.queue, bits...)
+}
+
+// Exist check if the given bits exists in the Redis backend.
+func (s *RedisStorage) Exist(bits ...uint) (ret []bool, err error) {
+	conn := s.pool.Get()
+	defer conn.Close()
+
+	ret = make([]bool, len(bits))
+	for index, bit := range bits {
+		bitValue, err := redis.Int(conn.Do("GETBIT", s.key, bit))
+		if err != nil {
+			return ret, err
+		}
+		ret[index] = bitValue == 1
+	}
+
+	return
+}
+
+// Load load all init data and save into the Redis backend.
+func (s *RedisStorage) Load(bits ...uint) {
+	s.Add(bits...)
+	s.Save()
+}
