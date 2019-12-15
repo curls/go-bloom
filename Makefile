@@ -11,5 +11,3 @@ test: deps
 
 deps:
 	@echo "Fetching dependencies..."
-	@go get github.com/garyburd/redigo/redis
-	@go get github.com/willf/bitset

@@ -13,7 +13,16 @@ func newRedisPool(maxIdle int) *redis.Pool {
 		MaxIdle:     maxIdle,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", fmt.Sprintf("%s:6379", os.Getenv("REDIS_HOST")))
+			c, err := redis.Dial("tcp", fmt.Sprintf("%s:6379", os.Getenv("REDIS_HOST")))
+			if err != nil {
+				return nil, err
+			}
+
+			if _, err := c.Do("AUTH", os.Getenv("REDIS_PASSWORD")); err != nil {
+				c.Close()
+				return nil, err
+			}
+			return c, nil
 		},
 	}
 }
@@ -22,7 +31,7 @@ func TestRedisInit(t *testing.T) {
 	pool := newRedisPool(5)
 	defer pool.Close()
 
-	_, err := NewRedis(pool, "redis-init-test", 15000, 7)
+	_, _, err := NewRedis(pool, "redis-init-test", 15000, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +46,7 @@ func TestRedisSave(t *testing.T) {
 	pool := newRedisPool(5)
 	defer pool.Close()
 
-	r, err := NewRedis(pool, "redis-save-test", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-save-test", 15000, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +103,7 @@ func BenchmarkRedisQueueAppend(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, err := NewRedis(pool, "redis-queue-append-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-queue-append-benchmark", 15000, 7)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -113,7 +122,7 @@ func BenchmarkRedisSave(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, err := NewRedis(pool, "redis-save-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-save-benchmark", 15000, 7)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -133,7 +142,7 @@ func BenchmarkRedisExists(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, err := NewRedis(pool, "redis-exists-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-exists-benchmark", 15000, 7)
 	if err != nil {
 		b.Fatal(err)
 	}

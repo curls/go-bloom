@@ -13,7 +13,7 @@ type RedisStorage struct {
 }
 
 // NewRedisStorage creates a Redis backend storage to be used with the bloom filter.
-func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, error) {
+func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, bool, error) {
 	var err error
 
 	store := RedisStorage{pool, key, size, make([]uint, 0)}
@@ -22,16 +22,16 @@ func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, er
 	defer conn.Close()
 	exists, err := redis.Bool(conn.Do("EXISTS", key))
 	if err != nil {
-		return &store, err
+		return &store, exists, err
 	}
 
 	if !exists {
 		if err := store.init(); err != nil {
-			return &store, err
+			return &store, exists, err
 		}
 	}
 
-	return &store, nil
+	return &store, exists, nil
 }
 
 // init takes care of settings every bit to 0 in the Redis bitset.
@@ -76,32 +76,4 @@ func (s *RedisStorage) Exists(bit uint) (ret bool, err error) {
 		return
 	}
 	return bitValue == 1, err
-}
-
-// Add add the bits, which are to be saved, to the queue.
-func (s *RedisStorage) Add(bits ...uint) {
-	s.queue = append(s.queue, bits...)
-}
-
-// Exist check if the given bits exists in the Redis backend.
-func (s *RedisStorage) Exist(bits ...uint) (ret []bool, err error) {
-	conn := s.pool.Get()
-	defer conn.Close()
-
-	ret = make([]bool, len(bits))
-	for index, bit := range bits {
-		bitValue, err := redis.Int(conn.Do("GETBIT", s.key, bit))
-		if err != nil {
-			return ret, err
-		}
-		ret[index] = bitValue == 1
-	}
-
-	return
-}
-
-// Load load all init data and save into the Redis backend.
-func (s *RedisStorage) Load(bits ...uint) {
-	s.Add(bits...)
-	s.Save()
 }
