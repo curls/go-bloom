@@ -21,8 +21,8 @@ import (
 
 type Value []byte
 
-// bloomFilter holds all the storage filters.
-type bloomFilter struct {
+// BF holds all the storage filters.
+type BF struct {
 	filters []filter
 }
 
@@ -35,7 +35,7 @@ type filter struct {
 }
 
 // NewBitset creates and returns a new bloom filter using Bitset as a backend.
-func NewBitset(size, hashIter uint) *bloomFilter {
+func NewBitset(size, hashIter uint) *BF {
 	filters := filterSetup(size, hashIter)
 
 	for index, filter := range filters {
@@ -43,14 +43,14 @@ func NewBitset(size, hashIter uint) *bloomFilter {
 		filters[index] = filter
 	}
 
-	return &bloomFilter{filters}
+	return &BF{filters}
 }
 
 // NewRedis creates and returns a new bloom filter using Redis as a backend.
-func NewRedis(pool *redis.Pool, key string, size, hashIter uint) (*bloomFilter, bool, error) {
+func NewRedis(pool *redis.Pool, key string, size, hashIter uint) (*BF, bool, error) {
 	filters := filterSetup(size, hashIter)
 
-	bloom := bloomFilter{filters}
+	bloom := BF{filters}
 
 	var err error
 	var exist bool
@@ -79,7 +79,7 @@ func filterSetup(size, hashIter uint) (filters []filter) {
 }
 
 // Append is used to append a value to the queue.
-func (b *bloomFilter) Append(value []byte) {
+func (b *BF) Append(value []byte) {
 	for _, f := range b.filters {
 		a, b := f.hashValue(&value)
 		f.storage.Append((a + b*f.multiplier) % f.size)
@@ -87,7 +87,7 @@ func (b *bloomFilter) Append(value []byte) {
 }
 
 // Save takes care of saving the values from the queue to the correct backend.
-func (b *bloomFilter) Save() {
+func (b *BF) Save() {
 	var wg sync.WaitGroup
 	for _, f := range b.filters {
 		wg.Add(1)
@@ -102,7 +102,7 @@ func (b *bloomFilter) Save() {
 }
 
 // Exists checks if the given value is in the bloom filter or not. False positives might occur.
-func (b *bloomFilter) Exists(value []byte) (exists bool, err error) {
+func (b *BF) Exists(value []byte) (exists bool, err error) {
 	for _, f := range b.filters {
 		a, b := f.hashValue(&value)
 		exists, err = f.storage.Exists((a + b*f.multiplier) % f.size)
@@ -116,7 +116,7 @@ func (b *bloomFilter) Exists(value []byte) (exists bool, err error) {
 }
 
 // Exist checks if the given value is in the bloom filter or not. False positives might occur.
-func (b *bloomFilter) Exist(values ...Value) (exists []bool, err error) {
+func (b *BF) Exist(values ...Value) (exists []bool, err error) {
 
 	exists = make([]bool, len(values))
 	for index, value := range values {
@@ -133,14 +133,14 @@ func (b *bloomFilter) Exist(values ...Value) (exists []bool, err error) {
 }
 
 // Load checks if the given value is in the bloom filter or not. False positives might occur.
-func (b *bloomFilter) Load(values ...Value) (exists []bool, err error) {
+func (b *BF) Load(values ...Value) (exists []bool, err error) {
 	b.Add(values...)
 	b.Save()
 	return
 }
 
 // Add is used to append a value to the queue.
-func (b *bloomFilter) Add(values ...Value) {
+func (b *BF) Add(values ...Value) {
 
 	for _, value := range values {
 		for _, f := range b.filters {
