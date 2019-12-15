@@ -12,7 +12,7 @@ package bloom
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"hash"
 	"hash/fnv"
 	"math"
