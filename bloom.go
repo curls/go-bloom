@@ -47,7 +47,7 @@ func NewBitset(size, hashIter uint) *BF {
 }
 
 // NewRedis creates and returns a new bloom filter using Redis as a backend.
-func NewRedis(pool *redis.Pool, key string, size, hashIter uint) (*BF, bool, error) {
+func NewRedis(pool *redis.Pool, key string, size, hashIter uint, expiredAfterSeconds int64) (*BF, bool, error) {
 	filters := filterSetup(size, hashIter)
 
 	bloom := BF{filters}
@@ -55,7 +55,7 @@ func NewRedis(pool *redis.Pool, key string, size, hashIter uint) (*BF, bool, err
 	var err error
 	var exist bool
 	for index, filter := range bloom.filters {
-		filter.storage, exist, err = NewRedisStorage(pool, fmt.Sprintf("%s.%d", key, filter.multiplier), filter.size)
+		filter.storage, exist, err = NewRedisStorage(pool, fmt.Sprintf("%s.%d", key, filter.multiplier), filter.size, expiredAfterSeconds)
 		if err != nil {
 			return &bloom, exist, err
 		}

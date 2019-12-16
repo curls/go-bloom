@@ -31,7 +31,7 @@ func TestRedisInit(t *testing.T) {
 	pool := newRedisPool(5)
 	defer pool.Close()
 
-	_, _, err := NewRedis(pool, "redis-init-test", 15000, 7)
+	_, _, err := NewRedis(pool, "redis-init-test", 15000, 7, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestRedisSave(t *testing.T) {
 	pool := newRedisPool(5)
 	defer pool.Close()
 
-	r, _, err := NewRedis(pool, "redis-save-test", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-save-test", 15000, 7, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func BenchmarkRedisQueueAppend(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, _, err := NewRedis(pool, "redis-queue-append-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-queue-append-benchmark", 15000, 7, -1)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func BenchmarkRedisSave(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, _, err := NewRedis(pool, "redis-save-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-save-benchmark", 15000, 7, -1)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func BenchmarkRedisExists(b *testing.B) {
 	pool := newRedisPool(7)
 	defer pool.Close()
 
-	r, _, err := NewRedis(pool, "redis-exists-benchmark", 15000, 7)
+	r, _, err := NewRedis(pool, "redis-exists-benchmark", 15000, 7, -1)
 	if err != nil {
 		b.Fatal(err)
 	}

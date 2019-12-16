@@ -13,7 +13,7 @@ type RedisStorage struct {
 }
 
 // NewRedisStorage creates a Redis backend storage to be used with the bloom filter.
-func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, bool, error) {
+func NewRedisStorage(pool *redis.Pool, key string, size uint, expiredAfterSeconds int64) (*RedisStorage, bool, error) {
 	var err error
 
 	store := RedisStorage{pool, key, size, make([]uint, 0)}
@@ -26,7 +26,7 @@ func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, bo
 	}
 
 	if !exists {
-		if err := store.init(); err != nil {
+		if err := store.init(expiredAfterSeconds); err != nil {
 			return &store, exists, err
 		}
 	}
@@ -35,7 +35,7 @@ func NewRedisStorage(pool *redis.Pool, key string, size uint) (*RedisStorage, bo
 }
 
 // init takes care of settings every bit to 0 in the Redis bitset.
-func (s *RedisStorage) init() (err error) {
+func (s *RedisStorage) init(expiredAfterSeconds int64) (err error) {
 	conn := s.pool.Get()
 	defer conn.Close()
 
@@ -43,7 +43,7 @@ func (s *RedisStorage) init() (err error) {
 	for i = 0; i < s.size; i++ {
 		conn.Send("SETBIT", s.key, i, 0)
 	}
-
+	_ = conn.Send("EXPIRE", s.key, expiredAfterSeconds)
 	err = conn.Flush()
 
 	return
@@ -56,6 +56,11 @@ func (s *RedisStorage) Append(bit uint) {
 
 // Save pushes the bits from the queue to the storage backend, assigning the value 1 in the process.
 func (s *RedisStorage) Save() {
+
+	if len(s.queue) <= 0 {
+		return
+	}
+
 	conn := s.pool.Get()
 	defer conn.Close()
 
